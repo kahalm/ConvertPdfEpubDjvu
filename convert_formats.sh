@@ -5,7 +5,7 @@
 # Also creates/updates JSON sidecars for newly converted files.
 #
 # Usage:
-#   ./convert_formats.sh [--dry-run] <library_dir>
+#   ./convert_formats.sh [--dry-run] [--target pdf|djvu|epub] <library_dir>
 #
 # Required tools:
 #   pdf2djvu      — PDF → DJVU        (apt install pdf2djvu)
@@ -20,17 +20,24 @@ set -euo pipefail
 
 # ── Args ──────────────────────────────────────────────────────────────────────
 DRY_RUN=false
+TARGET=""
 LIBRARY_DIR=""
 
-for arg in "$@"; do
-    case "$arg" in
-        --dry-run) DRY_RUN=true ;;
-        *)         LIBRARY_DIR="$arg" ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run) DRY_RUN=true; shift ;;
+        --target)  TARGET="${2,,}"; shift 2 ;;
+        *)         LIBRARY_DIR="$1"; shift ;;
     esac
 done
 
 if [[ -z "$LIBRARY_DIR" ]]; then
-    echo "Usage: $0 [--dry-run] <library_dir>" >&2
+    echo "Usage: $0 [--dry-run] [--target pdf|djvu|epub] <library_dir>" >&2
+    exit 1
+fi
+
+if [[ -n "$TARGET" ]] && [[ "$TARGET" != "pdf" && "$TARGET" != "djvu" && "$TARGET" != "epub" ]]; then
+    echo "ERROR: --target must be pdf, djvu or epub (got: $TARGET)" >&2
     exit 1
 fi
 
@@ -194,6 +201,7 @@ convert_epub_to_djvu() {
 # ── Main loop ─────────────────────────────────────────────────────────────────
 info "=== Starting format conversion ==="
 info "Library : $LIBRARY_DIR"
+info "Target  : ${TARGET:-all}"
 info "Dry run : $DRY_RUN"
 
 while IFS= read -r -d '' file; do
@@ -205,16 +213,16 @@ while IFS= read -r -d '' file; do
 
     case "$ext_lower" in
         pdf)
-            convert_pdf_to_djvu "$file"
-            convert_pdf_to_epub "$file"
+            [[ -z "$TARGET" || "$TARGET" == "djvu" ]] && convert_pdf_to_djvu "$file"
+            [[ -z "$TARGET" || "$TARGET" == "epub" ]] && convert_pdf_to_epub "$file"
             ;;
         djvu|djv)
-            convert_djvu_to_pdf  "$file"
-            convert_djvu_to_epub "$file"
+            [[ -z "$TARGET" || "$TARGET" == "pdf"  ]] && convert_djvu_to_pdf  "$file"
+            [[ -z "$TARGET" || "$TARGET" == "epub" ]] && convert_djvu_to_epub "$file"
             ;;
         epub)
-            convert_epub_to_pdf  "$file"
-            convert_epub_to_djvu "$file"
+            [[ -z "$TARGET" || "$TARGET" == "pdf"  ]] && convert_epub_to_pdf  "$file"
+            [[ -z "$TARGET" || "$TARGET" == "djvu" ]] && convert_epub_to_djvu "$file"
             ;;
     esac
 

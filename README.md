@@ -39,8 +39,14 @@ chmod +x convert_formats.sh
 # Preview what would be converted (no files written)
 ./convert_formats.sh --dry-run /srv/schach
 
-# Run conversion
+# Run conversion (all formats)
 ./convert_formats.sh /srv/schach
+
+# Convert everything to PDF only
+./convert_formats.sh --target pdf /srv/schach
+
+# Convert everything to EPUB only
+./convert_formats.sh --target epub /srv/schach
 ```
 
 Progress and errors are logged to `<library_dir>/convert_formats.log`.
